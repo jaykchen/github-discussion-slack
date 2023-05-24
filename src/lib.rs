@@ -30,11 +30,10 @@ async fn handler(payload: EventPayload) {
         let name = discussion["user"]["login"].as_str().unwrap();
         let title = discussion["title"].as_str().unwrap();
         let html_url = discussion["html_url"].as_str().unwrap();
-        let comments_count = discussion
-            .get("comments")
-            .expect("no comments found")
-            .as_i64()
-            .unwrap_or(0i64);
+        let comments_count = match discussion.get("comments") {
+            Some(comments) => comments.as_i64().unwrap_or(0i64),
+            None => 0i64,
+        };
 
         let mut text = String::new();
 
