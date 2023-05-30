@@ -29,6 +29,8 @@ async fn handler(payload: EventPayload) {
 
         let name = discussion["user"]["login"].as_str().unwrap();
         let title = discussion["title"].as_str().unwrap();
+        send_message_to_channel(&slack_workspace, &slack_channel, title.to_string());
+
         let html_url = discussion["html_url"].as_str().unwrap();
         let comments_count = match discussion.get("comments") {
             Some(comments) => comments.as_i64().unwrap_or(0i64),
