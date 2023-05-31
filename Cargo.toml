@@ -11,5 +11,8 @@ crate-type = ["cdylib"]
 github-flows = "0.5.1"
 slack-flows = "0.2.6"
 tokio_wasi = { version = "1.25.1", features = ["macros", "rt"] }
-serde_json = "1"
 dotenv = "0.15.0"
+chrono = "0.4.26"
+serde_json = "1.0.96"
+serde = {version = "1.0.163", features = ["derive"]}
+octocrab_wasi = "0.18.3"
