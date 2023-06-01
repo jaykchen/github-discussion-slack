@@ -56,6 +56,7 @@ async fn handler(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let trigger_word = env::var("trigger_word").unwrap_or("diss".to_string());
     let token = env::var("github_token").unwrap_or("secondstate".to_string());
+    let owner = env::var("owner").unwrap_or("alabulei1".to_string());
     // let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
     // let slack_channel = env::var("slack_channel").unwrap_or("github-status".to_string());
     let slack_workspace = worksapce;
@@ -77,7 +78,6 @@ async fn handler(
     //     _ => (),
     // }
 
-    let owner = "jaykchen";
     // if is_valid_event && is_triggered {
     let n_days_ago = Utc::now().checked_sub_signed(Duration::days(1)).unwrap();
 
@@ -116,18 +116,29 @@ async fn handler(
 
     let raw_url = "https://api.github.com/graphql";
     let gql_api_url = Uri::try_from(raw_url).unwrap();
-    match Request::new(&gql_api_url)
+
+    let bearer_token = format!("Bearer {}", token);
+    let _response = Request::new(&gql_api_url)
         .method(Method::POST)
-        .header("Accept", "application/vnd.github.v4+json")
-        .header("User-Agent", "Flows Network Connector")
-        .header("Authoriziation", &format!("Bearer {}", token))
+        .header("Authorization", &bearer_token)
+        .header("Content-Type", "application/json")
+        .header("Content-Length", &query.to_string().len())
         .body(&query.to_string().into_bytes())
-        .send(&mut buffer)
-        .map_err(|_e| {})
-    {
-        Err(_e) => {}
-        _ => {}
-    }
+        .send(&mut buffer)?;
+
+
+    // match Request::new(&gql_api_url)
+    //     .method(Method::POST)
+    //     .header("Accept", "application/vnd.github.v4+json")
+    //     .header("User-Agent", "Flows Network Connector")
+    //     .header("Authoriziation", &format!("Bearer {}", token))
+    //     .body(&query.to_string().into_bytes())
+    //     .send(&mut buffer)
+    //     .map_err(|_e| {})
+    // {
+    //     Err(_e) => {}
+    //     _ => {}
+    // }
 
     let response_str = String::from_utf8_lossy(&buffer).to_string();
     send_message_to_channel(&slack_workspace, &slack_channel, response_str);
