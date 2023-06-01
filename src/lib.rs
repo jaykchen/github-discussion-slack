@@ -79,7 +79,7 @@ async fn handler(
     // }
 
     // if is_valid_event && is_triggered {
-    let n_days_ago = Utc::now().checked_sub_signed(Duration::days(1)).unwrap();
+    let n_days_ago = Utc::now().checked_sub_signed(Duration::days(30)).unwrap();
 
     let query = serde_json::json!({
         "query": format!(
@@ -138,6 +138,10 @@ async fn handler(
         for discussion_edge in &node.discussions.edges {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
+            let created = &discussion_node.createdAt;
+            if created > &n_days_ago {
+                continue;
+            }
             if comments.totalCount == 0 {
                 let name = &node.name;
                 let title = &discussion_node.title;
