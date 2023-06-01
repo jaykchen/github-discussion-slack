@@ -122,23 +122,10 @@ async fn handler(
         .method(Method::POST)
         .header("Authorization", &bearer_token)
         .header("Content-Type", "application/json")
+        .header("User-Agent", "Flows Network Connector")
         .header("Content-Length", &query.to_string().len())
         .body(&query.to_string().into_bytes())
         .send(&mut buffer)?;
-
-
-    // match Request::new(&gql_api_url)
-    //     .method(Method::POST)
-    //     .header("Accept", "application/vnd.github.v4+json")
-    //     .header("User-Agent", "Flows Network Connector")
-    //     .header("Authoriziation", &format!("Bearer {}", token))
-    //     .body(&query.to_string().into_bytes())
-    //     .send(&mut buffer)
-    //     .map_err(|_e| {})
-    // {
-    //     Err(_e) => {}
-    //     _ => {}
-    // }
 
     let response_str = String::from_utf8_lossy(&buffer).to_string();
     send_message_to_channel(&slack_workspace, &slack_channel, response_str);
