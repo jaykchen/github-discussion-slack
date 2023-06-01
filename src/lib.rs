@@ -1,4 +1,4 @@
-use chrono::{Duration, Utc};
+use chrono::{DateTime, Duration, Utc};
 use dotenv::dotenv;
 // use github_flows::{
 //     listen_to_event,
@@ -138,11 +138,12 @@ async fn handler(
         for discussion_edge in &node.discussions.edges {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
-            let created = &discussion_node.createdAt;
-            if created > &n_days_ago {
-                continue;
-            }
-            if comments.totalCount == 0 {
+            let mut in_time_range = false;
+            match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
+                Ok(dt) => in_time_range = dt > n_days_ago,
+                Err(_e) => continue,
+            };
+            if in_time_range && comments.totalCount == 0 {
                 let name = &node.name;
                 let title = &discussion_node.title;
                 let html_url = &discussion_node.url;
