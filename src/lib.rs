@@ -11,8 +11,8 @@ use http_req::{
     uri::Uri,
 };
 
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde::Deserialize;
+use serde_json;
 use slack_flows::{listen_to_channel, send_message_to_channel, SlackMessage};
 use std::env;
 
@@ -54,7 +54,11 @@ async fn handler(
     channel: &str,
     sm: SlackMessage,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let trigger_word = env::var("trigger_word").unwrap_or("diss".to_string());
+    let trigger_word = env::var("trigger_word").unwrap_or("disscuss".to_string());
+
+    if !sm.text.contains(&trigger_word) {
+        return Ok(());
+    }
     let token = env::var("github_token").unwrap_or("secondstate".to_string());
     let owner = env::var("owner").unwrap_or("alabulei1".to_string());
     // let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
@@ -96,7 +100,7 @@ async fn handler(
                                             title,
                                             url,
                                             comments {{
-                                                totalCount
+                                                total_count
                                             }},
                                             createdAt
                                         }}
@@ -127,9 +131,6 @@ async fn handler(
         .body(&query.to_string().into_bytes())
         .send(&mut buffer)?;
 
-    let response_str = String::from_utf8_lossy(&buffer).to_string();
-    send_message_to_channel(&slack_workspace, &slack_channel, response_str);
-
     let response: Response = serde_json::from_slice(&buffer)?;
 
     let repo_edges = response.data.user.repositories;
@@ -143,12 +144,12 @@ async fn handler(
                 Ok(dt) => in_time_range = dt > n_days_ago,
                 Err(_e) => continue,
             };
-            if in_time_range && comments.totalCount == 0 {
+            if in_time_range && comments.total_count == 0 {
                 let name = &node.name;
                 let title = &discussion_node.title;
                 let html_url = &discussion_node.url;
 
-                let text = format!("{} started discussion {}\n{}", name, title, html_url);
+                let text = format!("{name} started discussion {title}\n{html_url}");
                 send_message_to_channel(&slack_workspace, &slack_channel, text);
             }
         }
@@ -180,12 +181,11 @@ struct Repositories {
 
 #[derive(Debug, Deserialize)]
 struct Comment {
-    totalCount: usize,
+    total_count: usize,
 }
 
 #[derive(Debug, Deserialize)]
 struct DiscussionNode {
-    id: String,
     title: String,
     url: String,
     comments: Comment,
