@@ -1,11 +1,5 @@
 use chrono::{DateTime, Duration, Utc};
 use dotenv::dotenv;
-// use github_flows::{
-//     listen_to_event,
-//     octocrab::models::events::payload::{IssuesEventAction, PullRequestEventAction},
-//     EventPayload,
-//     GithubLogin::Default,
-// };
 use http_req::{
     request::{Method, Request},
     uri::Uri,
@@ -16,25 +10,6 @@ use serde_json;
 use slack_flows::{listen_to_channel, send_message_to_channel, SlackMessage};
 use std::env;
 
-// #[no_mangle]
-// #[tokio::main(flavor = "current_thread")]
-// pub async fn run() {
-//     dotenv().ok();
-
-//     let github_owner = env::var("github_owner").unwrap_or("WasmEdge".to_string());
-//     let github_repo = env::var("github_repo").unwrap_or("WasmEdge".to_string());
-
-//     listen_to_event(
-//         &Default,
-//         &github_owner,
-//         &github_repo,
-//         vec!["issues", "pull_request"],
-//         |payload| handler(&github_owner, payload),
-//     )
-//     .await;
-// }
-
-// async fn handler(owner: &str, payload: EventPayload) {
 #[no_mangle]
 pub fn run() {
     dotenv().ok();
@@ -54,36 +29,14 @@ async fn handler(
     channel: &str,
     sm: SlackMessage,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let trigger_word = env::var("trigger_word").unwrap_or("disscuss".to_string());
+    let trigger_word = env::var("trigger_word").unwrap_or("discuss".to_string());
+    let token = env::var("github_token").unwrap_or("secondstate".to_string());
+    let owner = env::var("owner").unwrap_or("alabulei1".to_string());
+    let n_days_ago = Utc::now().checked_sub_signed(Duration::days(30)).unwrap();
 
     if !sm.text.contains(&trigger_word) {
         return Ok(());
     }
-    let token = env::var("github_token").unwrap_or("secondstate".to_string());
-    let owner = env::var("owner").unwrap_or("alabulei1".to_string());
-    // let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
-    // let slack_channel = env::var("slack_channel").unwrap_or("github-status".to_string());
-    let slack_workspace = worksapce;
-    let slack_channel = channel;
-    // let mut is_triggered = false;
-    // let mut is_valid_event = true;
-
-    // match payload {
-    //     EventPayload::IssuesEvent(e) => {
-    //         is_valid_event = e.action != IssuesEventAction::Closed;
-    //         is_triggered = true;
-    //     }
-
-    //     EventPayload::PullRequestEvent(e) => {
-    //         is_valid_event = e.action != PullRequestEventAction::Closed;
-    //         is_triggered = true;
-    //     }
-
-    //     _ => (),
-    // }
-
-    // if is_valid_event && is_triggered {
-    let n_days_ago = Utc::now().checked_sub_signed(Duration::days(30)).unwrap();
 
     let query = serde_json::json!({
         "query": format!(
@@ -150,13 +103,10 @@ async fn handler(
                 let html_url = &discussion_node.url;
 
                 let text = format!("{name} started discussion {title}\n{html_url}");
-                send_message_to_channel(&slack_workspace, &slack_channel, text);
+                send_message_to_channel(&worksapce, &channel, text);
             }
         }
     }
-
-    // }
-
     Ok(())
 }
 
