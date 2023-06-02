@@ -4,39 +4,38 @@ use http_req::{
     request::{Method, Request},
     uri::Uri,
 };
-
+use schedule_flows::schedule_cron_job;
 use serde::Deserialize;
 use serde_json;
-use slack_flows::{listen_to_channel, send_message_to_channel, SlackMessage};
+use slack_flows::send_message_to_channel;
 use std::env;
 
 #[no_mangle]
 pub fn run() {
-    dotenv().ok();
-
-    let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
-    let slack_channel = env::var("slack_channel").unwrap_or("github-status".to_string());
-
-    listen_to_channel(&slack_workspace, &slack_channel, |sm| {
-        handler(&slack_workspace, &slack_channel, sm);
-    });
+    schedule_cron_job(
+        String::from("50 8 * * *"),
+        String::from("cron_job_evoked"),
+        |payload| {
+            handler(payload);
+        },
+    );
 }
 
 #[no_mangle]
 #[tokio::main(flavor = "current_thread")]
-async fn handler(
-    worksapce: &str,
-    channel: &str,
-    sm: SlackMessage,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let trigger_word = env::var("trigger_word").unwrap_or("discuss".to_string());
+async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+
     let token = env::var("github_token").unwrap_or("secondstate".to_string());
     let owner = env::var("owner").unwrap_or("alabulei1".to_string());
-    let n_days_ago = Utc::now().checked_sub_signed(Duration::days(30)).unwrap();
 
-    if !sm.text.contains(&trigger_word) {
-        return Ok(());
-    }
+    let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
+    let slack_channel = env::var("slack_channel").unwrap_or("github-status".to_string());
+
+    let n_days = env::var("n_days").unwrap_or("1".to_string());
+    let n_days_ago = Utc::now()
+        .checked_sub_signed(Duration::days(n_days.parse::<i64>().unwrap_or(1)))
+        .unwrap();
 
     let query = serde_json::json!({
         "query": format!(
@@ -55,7 +54,7 @@ async fn handler(
                                             comments {{
                                                 total_count
                                             }},
-                                            createdAt
+                                            created_at
                                         }}
                                     }}
                                 }}
@@ -93,8 +92,8 @@ async fn handler(
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
             let mut in_time_range = false;
-            match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
-                Ok(dt) => in_time_range = dt > n_days_ago,
+            match DateTime::parse_from_rfc3339(&discussion_node.created_at) {
+                Ok(dt) => { in_time_range = dt > n_days_ago; },
                 Err(_e) => continue,
             };
             if in_time_range && comments.total_count == 0 {
@@ -103,7 +102,7 @@ async fn handler(
                 let html_url = &discussion_node.url;
 
                 let text = format!("{name} started discussion {title}\n{html_url}");
-                send_message_to_channel(&worksapce, &channel, text);
+                send_message_to_channel(&slack_workspace, &slack_channel, text);
             }
         }
     }
@@ -139,7 +138,7 @@ struct DiscussionNode {
     title: String,
     url: String,
     comments: Comment,
-    createdAt: String,
+    created_at: String,
 }
 
 #[derive(Debug, Deserialize)]
