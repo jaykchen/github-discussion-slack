@@ -95,6 +95,11 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
             match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
                 Ok(dt) => {
                     let dt_utc = dt.with_timezone(&Utc);
+                    let dt_str = dt_utc.to_string();
+                    let n_days_ago_str = n_days_ago.to_string();
+                    let msg = format!("dt: {dt_str}     n_days_ago: {n_days_ago_str}");
+                    send_message_to_channel(&slack_workspace, &slack_channel, msg);
+
                     in_time_range = dt_utc > n_days_ago;
                 }
                 Err(_e) => continue,
