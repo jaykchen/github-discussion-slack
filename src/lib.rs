@@ -83,6 +83,9 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         .body(&query.to_string().into_bytes())
         .send(&mut buffer)?;
 
+    let response_str = String::from_utf8_lossy(&buffer);
+    send_message_to_channel(&slack_workspace, "ch_in", response_str.to_string());
+
     let response: Response = serde_json::from_slice(&buffer)?;
 
     let repo_edges = response.data.user.repositories;
