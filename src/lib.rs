@@ -83,9 +83,6 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         .body(&query.to_string().into_bytes())
         .send(&mut buffer)?;
 
-    let response_str = String::from_utf8_lossy(&buffer);
-    send_message_to_channel(&slack_workspace, "ch_in", response_str.to_string());
-
     let response: Response = serde_json::from_slice(&buffer)?;
 
     let repo_edges = response.data.user.repositories;
@@ -94,13 +91,13 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         for discussion_edge in &node.discussions.edges {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
-            let mut in_time_range = true;
-            // match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
-            //     Ok(dt) => {
-            //         in_time_range = dt > n_days_ago;
-            //     }
-            //     Err(_e) => continue,
-            // };
+            let mut in_time_range = false;
+            match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
+                Ok(dt) => {
+                    in_time_range = dt > n_days_ago;
+                }
+                Err(_e) => continue,
+            };
             if in_time_range && comments.totalCount == 0 {
                 let name = &node.name;
                 let title = &discussion_node.title;
