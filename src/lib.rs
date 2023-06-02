@@ -91,18 +91,18 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         for discussion_edge in &node.discussions.edges {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
-            let mut in_time_range = true;
+            let mut in_time_range = false;
             match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
                 Ok(dt) => {
                     let dt_utc = dt.with_timezone(&Utc);
                     let dt_utc_no_frac = dt_utc.date_naive();
                     let n_days_ago_no_frac = n_days_ago.date_naive();
 
-                    let dt_str = dt_utc_no_frac.to_string();
-                    let n_days_ago_str = n_days_ago_no_frac.to_string();
-                    let msg = format!("dt: {dt_str}     n_days_ago: {n_days_ago_str}");
+                    // let dt_str = dt_utc_no_frac.to_string();
+                    // let n_days_ago_str = n_days_ago_no_frac.to_string();
+                    // let msg = format!("dt: {dt_str}     n_days_ago: {n_days_ago_str}");
+                    // send_message_to_channel(&slack_workspace, &slack_channel, msg);
 
-                    send_message_to_channel(&slack_workspace, &slack_channel, msg);
                     in_time_range = dt_utc_no_frac > n_days_ago_no_frac;
                 }
                 Err(_e) => continue,
