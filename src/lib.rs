@@ -52,7 +52,7 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
                                             title,
                                             url,
                                             comments {{
-                                                total_count
+                                                totalCount
                                             }},
                                             createdAt
                                         }}
@@ -101,7 +101,7 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
             //     }
             //     Err(_e) => continue,
             // };
-            if in_time_range && comments.total_count == 0 {
+            if in_time_range && comments.totalCount == 0 {
                 let name = &node.name;
                 let title = &discussion_node.title;
                 let html_url = &discussion_node.url;
@@ -135,7 +135,7 @@ struct Repositories {
 
 #[derive(Debug, Deserialize)]
 struct Comment {
-    total_count: usize,
+    totalCount: usize,
 }
 
 #[derive(Debug, Deserialize)]
