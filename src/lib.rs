@@ -54,7 +54,7 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
                                             comments {{
                                                 total_count
                                             }},
-                                            created_at
+                                            createdAt
                                         }}
                                     }}
                                 }}
@@ -92,7 +92,7 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
             let mut in_time_range = true;
-            // match DateTime::parse_from_rfc3339(&discussion_node.created_at) {
+            // match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
             //     Ok(dt) => {
             //         in_time_range = dt > n_days_ago;
             //     }
@@ -140,7 +140,7 @@ struct DiscussionNode {
     title: String,
     url: String,
     comments: Comment,
-    created_at: String,
+    createdAt: String,
 }
 
 #[derive(Debug, Deserialize)]
