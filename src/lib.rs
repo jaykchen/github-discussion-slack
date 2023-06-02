@@ -26,7 +26,7 @@ pub fn run() {
 #[no_mangle]
 #[tokio::main(flavor = "current_thread")]
 async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-    let token = env::var("github_token").unwrap_or("secondstate".to_string());
+    let token = env::var("github_token").unwrap_or("some_random_digits".to_string());
     let owner = env::var("owner").unwrap_or("alabulei1".to_string());
 
     let slack_workspace = env::var("slack_workspace").unwrap_or("secondstate".to_string());
@@ -35,7 +35,7 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
     let n_days = env::var("n_days").unwrap_or("1".to_string());
     let n_days_ago = Utc::now()
         .checked_sub_signed(Duration::days(n_days.parse::<i64>().unwrap_or(1)))
-        .unwrap();
+        .unwrap_or(Utc::now());
 
     let query = serde_json::json!({
         "query": format!(
@@ -70,13 +70,11 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
 
     let mut buffer = Vec::new();
 
-    let raw_url = "https://api.github.com/graphql";
-    let gql_api_url = Uri::try_from(raw_url).unwrap();
+    let gql_api_url = Uri::try_from("https://api.github.com/graphql").unwrap();
 
-    let bearer_token = format!("Bearer {}", token);
-    let _response = Request::new(&gql_api_url)
+    let _ = Request::new(&gql_api_url)
         .method(Method::POST)
-        .header("Authorization", &bearer_token)
+        .header("Authorization", &format!("Bearer {}", token))
         .header("Content-Type", "application/json")
         .header("User-Agent", "Flows Network Connector")
         .header("Content-Length", &query.to_string().len())
@@ -91,28 +89,21 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
         for discussion_edge in &node.discussions.edges {
             let discussion_node = &discussion_edge.node;
             let comments = &discussion_node.comments;
-            let mut in_time_range = false;
+            let mut in_date_range = false;
             match DateTime::parse_from_rfc3339(&discussion_node.createdAt) {
                 Ok(dt) => {
                     let dt_utc = dt.with_timezone(&Utc);
                     let dt_utc_no_frac = dt_utc.date_naive();
                     let n_days_ago_no_frac = n_days_ago.date_naive();
-
-                    // let dt_str = dt_utc_no_frac.to_string();
-                    // let n_days_ago_str = n_days_ago_no_frac.to_string();
-                    // let msg = format!("dt: {dt_str}     n_days_ago: {n_days_ago_str}");
-                    // send_message_to_channel(&slack_workspace, &slack_channel, msg);
-
-                    in_time_range = dt_utc_no_frac > n_days_ago_no_frac;
+                    in_date_range = dt_utc_no_frac >= n_days_ago_no_frac;
                 }
                 Err(_e) => continue,
             };
-            if in_time_range && comments.totalCount == 0 {
-                let name = &node.name;
+            if in_date_range && comments.totalCount == 0 {
                 let title = &discussion_node.title;
                 let html_url = &discussion_node.url;
 
-                let text = format!("{name} started discussion {title}\n{html_url}");
+                let text = format!("New discussion: {title}\n{html_url}");
                 send_message_to_channel(&slack_workspace, &slack_channel, text);
             }
         }
