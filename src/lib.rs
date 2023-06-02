@@ -12,20 +12,20 @@ use std::env;
 
 #[no_mangle]
 pub fn run() {
-    schedule_cron_job(
-        String::from("50 8 * * *"),
-        String::from("cron_job_evoked"),
-        |payload| {
-            handler(payload);
-        },
-    );
+    dotenv().ok();
+    //time_to_invoke is a string of 3 numbers separated by spaces, representing minute, hour, and day
+    //* is the spaceholder for non-specified numbers
+    let mut time_to_invoke = env::var("time_to_invoke").unwrap_or("35 12 *".to_string());
+    time_to_invoke.push_str(" * *");
+
+    schedule_cron_job(time_to_invoke, String::from("cron_job_evoked"), |payload| {
+        handler(payload);
+    });
 }
 
 #[no_mangle]
 #[tokio::main(flavor = "current_thread")]
 async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
-    dotenv().ok();
-
     let token = env::var("github_token").unwrap_or("secondstate".to_string());
     let owner = env::var("owner").unwrap_or("alabulei1".to_string());
 
@@ -93,7 +93,9 @@ async fn handler(_payload: Vec<u8>) -> Result<(), Box<dyn std::error::Error>> {
             let comments = &discussion_node.comments;
             let mut in_time_range = false;
             match DateTime::parse_from_rfc3339(&discussion_node.created_at) {
-                Ok(dt) => { in_time_range = dt > n_days_ago; },
+                Ok(dt) => {
+                    in_time_range = dt > n_days_ago;
+                }
                 Err(_e) => continue,
             };
             if in_time_range && comments.total_count == 0 {
